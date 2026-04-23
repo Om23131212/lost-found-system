@@ -17,23 +17,29 @@ router.post("/", auth, async (req, res) => {
   }
 });
 
-// 🔹 GET ALL ITEMS
+// 🔹 GET ALL ITEMS (Latest first)
 router.get("/", async (req, res) => {
   try {
-    const items = await Item.find().populate("user", "name email");
+    const items = await Item.find()
+      .populate("user", "name email")
+      .sort({ createdAt: -1 }); // latest first
+
     res.json(items);
   } catch (err) {
     res.status(400).send(err.message);
   }
 });
 
-// 🔍 SEARCH ITEMS (by title)
+// 🔍 SEARCH ITEMS (title + category)
 router.get("/search", async (req, res) => {
   try {
     const q = req.query.q || "";
 
     const items = await Item.find({
-      title: { $regex: q, $options: "i" } // case-insensitive search
+      $or: [
+        { title: { $regex: q, $options: "i" } },
+        { category: { $regex: q, $options: "i" } }
+      ]
     });
 
     res.json(items);
@@ -42,7 +48,7 @@ router.get("/search", async (req, res) => {
   }
 });
 
-// 🔹 UPDATE ITEM (Only Owner)
+// 🔄 UPDATE ITEM (Only Owner)
 router.put("/:id", auth, async (req, res) => {
   try {
     const item = await Item.findById(req.params.id);
@@ -59,6 +65,27 @@ router.put("/:id", auth, async (req, res) => {
     );
 
     res.json(updated);
+  } catch (err) {
+    res.status(400).send(err.message);
+  }
+});
+
+// 🔁 QUICK STATUS CHANGE (lost ↔ found)
+router.patch("/:id/status", auth, async (req, res) => {
+  try {
+    const item = await Item.findById(req.params.id);
+
+    if (!item) return res.status(404).send("Item not found");
+
+    if (item.user.toString() !== req.user.id)
+      return res.status(403).send("Not allowed");
+
+    // toggle status
+    item.type = item.type === "lost" ? "found" : "lost";
+
+    await item.save();
+
+    res.json(item);
   } catch (err) {
     res.status(400).send(err.message);
   }
