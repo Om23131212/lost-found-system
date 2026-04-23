@@ -3,27 +3,41 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 function AddItem() {
-  const [form, setForm] = useState({});
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    category: "",
+    type: "",
+    location: "",
+  });
+
   const navigate = useNavigate();
 
   // 🔐 Protect route
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) navigate("/");
-  }, []);
+  }, [navigate]);
 
   const handleSubmit = async () => {
-    await axios.post(
-      "http://localhost:5000/api/items",
-      form,
-      {
-        headers: {
-          Authorization: localStorage.getItem("token"),
-        },
-      }
-    );
+    try {
+      await axios.post(
+        "https://lost-found-backend-511q.onrender.com/api/items",
+        form,
+        {
+          headers: {
+            Authorization: localStorage.getItem("token"),
+          },
+        }
+      );
 
-    navigate("/dashboard");
+      alert("Item Added Successfully ✅");
+      navigate("/dashboard");
+
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data || "Error adding item ❌");
+    }
   };
 
   return (
@@ -34,24 +48,28 @@ function AddItem() {
         placeholder="Title"
         onChange={(e) => setForm({ ...form, title: e.target.value })}
       />
+
       <input
         placeholder="Description"
         onChange={(e) =>
           setForm({ ...form, description: e.target.value })
         }
       />
+
       <input
         placeholder="Category"
         onChange={(e) =>
           setForm({ ...form, category: e.target.value })
         }
       />
+
       <input
         placeholder="Type (lost/found)"
         onChange={(e) =>
           setForm({ ...form, type: e.target.value })
         }
       />
+
       <input
         placeholder="Location"
         onChange={(e) =>
